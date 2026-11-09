@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from cloud.api.auth import current_session
 from cloud.api.schemas import JobCreate, ProjectCreate
-from cloud.api.storage import insert_row, list_rows, update_rows
+from cloud.api.storage import call_rpc, insert_row, list_rows
 from lib.pipeline_loader import list_pipelines, load_pipeline
 
 API_VERSION = "v1"
@@ -172,18 +172,12 @@ def stream_job_events(
 
 @app.post("/api/v1/jobs/{job_id}/cancel", tags=["jobs"])
 def cancel_job(job_id: UUID, session: dict[str, Any] = Depends(current_session)):
-    token = _token(session)
-    queued = update_rows("jobs", token, params={
-        "id": f"eq.{job_id}", "status": "eq.queued",
-    }, values={"status": "cancelled"})
-    if queued:
-        return queued[0]
-    running = update_rows("jobs", token, params={
-        "id": f"eq.{job_id}", "status": "eq.running",
-    }, values={"status": "cancel_requested", "cancel_requested_at": datetime.now(timezone.utc).isoformat()})
-    if running:
-        return running[0]
-    raise HTTPException(status_code=409, detail="Job is not cancellable or is not accessible")
+    rows = call_rpc(
+        "request_openmontage_job_cancel", _token(session), {"p_job_id": str(job_id)},
+    )
+    if not rows:
+        raise HTTPException(status_code=409, detail="Job is not cancellable or is not accessible")
+    return rows[0]
 
 
 @app.exception_handler(HTTPException)
