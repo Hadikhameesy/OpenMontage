@@ -90,6 +90,36 @@ class SupabaseWorkerClient:
             "p_job_id": job["id"], "p_lease_token": job["lease_token"],
         })
 
+    def upload_artifact(self, job: dict, local_path: str, *, artifact_type: str = "output",
+                        content_type: str = "application/octet-stream") -> dict[str, Any]:
+        """Upload a trusted worker output to the user's private object prefix."""
+        from pathlib import Path
+        path = Path(local_path)
+        if not path.is_file():
+            raise WorkerError("artifact_file_not_found")
+        size = path.stat().st_size
+        if size < 1 or size > 1073741824:
+            raise WorkerError("artifact_size_out_of_range")
+        safe_name = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in path.name)[:120]
+        object_path = f"{job['owner_id']}/{job['id']}/{safe_name}"
+        url = f"{self.url}/storage/v1/object/openmontage-private/{object_path}"
+        with path.open("rb") as stream:
+            response = self.http.post(
+                url, data=stream,
+                headers={"Content-Type": content_type, "x-upsert": "false"},
+                timeout=(15, 300),
+            )
+        if response.status_code >= 400:
+            raise WorkerError(f"Storage upload failed ({response.status_code})")
+        metadata = {
+            "job_id": job["id"], "owner_id": job["owner_id"],
+            "bucket_id": "openmontage-private", "object_path": object_path,
+            "artifact_type": artifact_type, "content_type": content_type,
+            "size_bytes": size,
+        }
+        self.request("POST", "job_artifacts", body=metadata)
+        return metadata
+
 
 def load_executor() -> Callable:
     """Load only a deployment-configured, trusted Python executor."""
