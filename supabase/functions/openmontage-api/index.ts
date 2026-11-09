@@ -13,11 +13,13 @@ Deno.serve(async(req:Request)=>{
  const url=new URL(req.url),at=url.pathname.indexOf("/api/v1"),path=at>=0?url.pathname.slice(at):url.pathname;
  if(req.method==="GET"&&(path==="/health"||path.endsWith("/health")))return json({status:"ok",service:"openmontage-supabase-edge-api"},200,origin);
  if(!["GET","POST"].includes(req.method))return fail("Method not allowed",405,origin);
+ if(req.method==="GET"&&path==="/api/v1/version")return json({application:"OpenMontage",version:"0.5.0",api:"v1"},200,origin);
+ if(req.method==="GET"&&path==="/api/v1/pipelines")return json({items:PIPELINES.map(id=>({id,name:id.replaceAll("-"," ").replace(/\\b\\w/g,m=>m.toUpperCase()),version:"manifest",category:"video",available:true,stages:[]}))},200,origin);
+
  const auth=req.headers.get("authorization")||"",token=auth.match(/^Bearer\s+(.+)$/i)?.[1];if(!token)return fail("Authentication required",401,origin);
  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:`Bearer ${token}`}}});
  const {data:authData,error:authError}=await sb.auth.getUser(token);if(authError||!authData.user)return fail("Invalid or expired access token",401,origin);
  try{
-  if(req.method==="GET"&&path==="/api/v1/version")return json({application:"OpenMontage",version:"0.5.0",api:"v1"},200,origin);
   if(req.method==="GET"&&path==="/api/v1/pipelines")return json({items:PIPELINES.map(id=>({id,name:id.replaceAll("-"," ").replace(/\b\w/g,m=>m.toUpperCase()),version:"manifest",category:"video",available:true,stages:[]}))},200,origin);
   if(req.method==="GET"&&path==="/api/v1/projects"){const {data,error}=await sb.from("projects").select("id,name,brief,pipeline_id,aspect_ratio,created_at,updated_at").order("created_at",{ascending:false});if(error)throw error;return json({items:data||[]},200,origin);}
   if(req.method==="POST"&&path==="/api/v1/projects"){const b=await req.json(),name=String(b.name||"").trim(),brief=String(b.brief||"").trim(),pipeline_id=String(b.pipeline_id||""),aspect_ratio=b.aspect_ratio||"16:9";if(name.length<1||name.length>120||brief.length<1||brief.length>12000||!PIPELINES.includes(pipeline_id)||!validAspect(aspect_ratio))return fail("Invalid project fields",422,origin);const {data,error}=await sb.from("projects").insert({owner_id:authData.user.id,name,brief,pipeline_id,aspect_ratio}).select("*").single();if(error)throw error;return json(data,201,origin);}
