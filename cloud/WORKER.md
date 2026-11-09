@@ -16,8 +16,9 @@ FastAPI process and must run on a persistent CPU/GPU-capable host.
 The executor is installed by the deployment operator and must expose:
 
 ```python
-def execute(*, job, project, report_progress, stop_event) -> dict:
+def execute(*, job, project, report_progress, stop_event, worker_client) -> dict:
     # Invoke the existing OpenMontage agent/runtime through a reviewed adapter.
+    # Use worker_client.upload_artifact(job, local_path, ...) for private outputs.
     # Return JSON-serializable result metadata and artifact references.
     ...
 ```
