@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import json
+import os
 import time
-from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from cloud.api.auth import current_session
 from cloud.api.schemas import JobCreate, ProjectCreate
@@ -21,6 +22,20 @@ app = FastAPI(
     title="OpenMontage Cloud API", version=APP_VERSION,
     description="Authenticated project and durable job-record API for OpenMontage.",
     docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json",
+)
+
+_allowed_origins = [
+    item.strip() for item in os.getenv(
+        "CORS_ALLOW_ORIGINS",
+        "http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:3000,http://localhost:3000",
+    ).split(",") if item.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Last-Event-ID"],
 )
 
 
