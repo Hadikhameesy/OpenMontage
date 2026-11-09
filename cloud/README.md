@@ -4,7 +4,7 @@ This directory is the starting point for the optional cloud/web control plane. I
 
 ## Current status
 
-This is an architecture and implementation boundary, not a claim that cloud rendering is already available. The first implementation stages will add a web API and browser UI without changing the existing production behavior.
+This is an additive cloud control plane. The web dashboard, Supabase Auth token verification, owner-scoped project/job persistence contracts, and initial durable queued-job records are now implemented. A separate worker still needs to claim and execute queued jobs; cloud video rendering is not yet available.
 
 ## Design goals
 
@@ -31,11 +31,11 @@ This is an architecture and implementation boundary, not a claim that cloud rend
 ## Development sequence
 
 1. **Foundation** — document contracts, threat model, environment configuration, and service boundaries.
-2. **Read-only API** — health, version, pipeline catalog, capability catalog; no production execution yet.
-3. **Web shell** — responsive dashboard and project creation UI using mock/demo data until API contracts are stable.
-4. **Persistence and auth** — database-backed users/projects and secure sessions.
-5. **Queue and worker** — execute one explicitly approved pipeline stage at a time, with checkpoints.
-6. **Artifacts and events** — object storage and authenticated progress streaming.
+2. **Read-only API and web shell** — health/version/catalog plus responsive RTL/LTR dashboard (implemented).
+3. **Auth and persistence foundation** — Supabase Auth token verification, owner-scoped project/job tables with RLS, and protected project/job-record endpoints (implemented; requires applying the migration and configuring Supabase).
+4. **Queue and worker** — atomically claim queued jobs, leases/heartbeats, retry/cancel/checkpoint behavior, and safe pipeline execution (next milestone).
+5. **Artifacts and events** — private object storage and authenticated progress streaming.
+6. **Provider adapters** — server-side credentials, quotas, explicit cost approvals, and provider integration.
 7. **Deployment** — deploy the lightweight web/API separately from workers; document free-tier limits and paid-resource escape hatches.
 
 ## Important deployment reality
