@@ -8,7 +8,7 @@ This is the additive cloud control plane for OpenMontage. It preserves the exist
 - Supabase Auth token verification: implemented.
 - Owner-scoped projects and durable jobs with RLS: deployed to the linked Supabase project.
 - Durable queue: claim leases, heartbeats, retry/cancel RPCs, job events, private artifact metadata: deployed.
-- FastAPI project/job API, event history and SSE: implemented.
+- FastAPI project/job API, event history and SSE: implemented.\n- Signed private input uploads and short-lived artifact download URLs: deployed in the Edge API.\n- Browser project form supports reference image, video, audio, PDF, text and ZIP uploads (up to 500 MB per file).
 - Separate worker consumer and Docker deployment: implemented.
 - Trusted headless agent-runtime adapter: not yet implemented; worker fails closed until installed.
 - Public API/worker hosting and production secrets: not yet configured.
