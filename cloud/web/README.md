@@ -1,29 +1,21 @@
 # OpenMontage Web
 
-A responsive Arabic RTL / English LTR dashboard shell for the optional cloud control plane.
+Responsive Arabic RTL / English LTR dashboard for the cloud control plane.
 
 ## Run locally
 
-Serve this directory with any static web server (do not open index.html as a file):
+Serve this directory with a static web server:
 
 ```bash
 python -m http.server 5173 --directory cloud/web
 ```
 
-Open `http://127.0.0.1:5173`.
+Open `http://127.0.0.1:5173`. Copy `config.example.js` to `config.js`, then set the API URL, Supabase project URL, and public anon key. Load `config.js` before `app.js` (already wired in `index.html`).
 
-Copy `config.example.js` to `config.js`, include it before `app.js` in `index.html`, and set the API URL. To enable email/password sign-in, configure a Supabase project URL and its public anon key. The anon key is designed for browser use; protect every database table with row-level security. Never put service-role keys or video-provider credentials in the browser.
+## Authentication and data
 
-## Current integration boundary
+Email/password sign-in uses Supabase Auth. The browser sends its access token to FastAPI. FastAPI validates it against Supabase Auth and forwards that same user token to PostgREST. PostgreSQL Row Level Security policies scope projects and jobs to their owner. Never place service-role keys or video-provider credentials in browser configuration.
 
-The dashboard calls:
-- `GET /health`
-- `GET /api/v1/pipelines`
-- `GET /api/v1/projects`
-- `POST /api/v1/projects`
+Apply `supabase/migrations/202611090001_cloud_projects_jobs.sql` before using project endpoints. The dashboard creates a project and a queued job record. The job remains queued until a separately deployed worker is connected; this version does not yet render video.
 
-The first two endpoints exist in the API foundation. Project endpoints and verified Supabase JWT authentication are the next backend milestone. Until that milestone is deployed, the UI can render but project creation/authenticated project loading will report the API error. This is intentional; the UI does not pretend a project was saved when it was not.
-
-## Cloud rendering
-
-A cloud job worker must be deployed separately from the static web UI and API. The worker needs access to the OpenMontage engine, durable job storage, private object storage, and configured provider credentials. Provider keys belong in server-side secrets only. Free web hosting does not imply free GPU/video generation or uninterrupted worker execution.
+See `cloud/LOCAL_DEVELOPMENT.md` for the complete setup and API routes.
