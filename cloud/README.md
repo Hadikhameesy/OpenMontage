@@ -2,13 +2,20 @@
 
 This is the additive cloud control plane for OpenMontage. It preserves the existing local agent-first production engine and Backlot.
 
-## Hosted preview\n\n- Studio: https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-studio\n- API: https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-api\n\n## Current status
+## Hosted preview
+
+- Studio: https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-studio
+- API: https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-api
+
+## Current status
 
 - Responsive Arabic RTL / English LTR dashboard: implemented.
 - Supabase Auth token verification: implemented.
 - Owner-scoped projects and durable jobs with RLS: deployed to the linked Supabase project.
 - Durable queue: claim leases, heartbeats, retry/cancel RPCs, job events, private artifact metadata: deployed.
-- FastAPI project/job API, event history and SSE: implemented.\n- Signed private input uploads and short-lived artifact download URLs: deployed in the Edge API.\n- Browser project form supports reference image, video, audio, PDF, text and ZIP uploads (up to 500 MB per file).
+- FastAPI project/job API, event history and SSE: implemented.
+- Signed private input uploads and short-lived artifact download URLs: deployed in the Edge API.
+- Browser project form supports reference image, video, audio, PDF, text and ZIP uploads (up to 500 MB per file).
 - Separate worker consumer and Docker deployment: implemented.
 - Trusted headless agent-runtime adapter: not yet implemented; worker fails closed until installed.
 - Public API/worker hosting and production secrets: not yet configured.
