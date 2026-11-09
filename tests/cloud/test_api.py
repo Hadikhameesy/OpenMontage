@@ -58,8 +58,8 @@ def test_project_and_job_lifecycle_contract(monkeypatch):
         [{"id": project_id, "pipeline_id": "demo"}] if table == "projects"
         else [{"id": job_id, "status": "queued"}]
     ))
-    monkeypatch.setattr(main, "update_rows", lambda table, token, params, values: [
-        {"id": job_id, **values}
+    monkeypatch.setattr(main, "call_rpc", lambda name, token, values: [
+        {"id": job_id, "status": "cancelled"}
     ])
 
     try:
