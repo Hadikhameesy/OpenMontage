@@ -14,7 +14,7 @@ Deno.serve(async(req:Request)=>{
  if(req.method==="GET"&&(path==="/health"||path.endsWith("/health")))return json({status:"ok",service:"openmontage-supabase-edge-api"},200,origin);
  if(!["GET","POST"].includes(req.method))return fail("Method not allowed",405,origin);
  if(req.method==="GET"&&path==="/api/v1/version")return json({application:"OpenMontage",version:"0.5.0",api:"v1"},200,origin);
- if(req.method==="GET"&&path==="/api/v1/pipelines")return json({items:PIPELINES.map(id=>({id,name:id.replaceAll("-"," ").replace(/\\b\\w/g,m=>m.toUpperCase()),version:"manifest",category:"video",available:true,stages:[]}))},200,origin);
+ if(req.method==="GET"&&path==="/api/v1/pipelines")return json({items:PIPELINES.map(id=>({id,name:id.split("-").map(part=>part.charAt(0).toUpperCase()+part.slice(1)).join(" "),version:"manifest",category:"video",available:true,stages:[]}))},200,origin);
 
  const auth=req.headers.get("authorization")||"",token=auth.match(/^Bearer\s+(.+)$/i)?.[1];if(!token)return fail("Authentication required",401,origin);
  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:`Bearer ${token}`}}});
