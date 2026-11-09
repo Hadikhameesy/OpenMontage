@@ -1,9 +1,9 @@
-name: Cloud API tests
+name: Cloud API and worker tests
 
 on:
   pull_request:
     paths:
-      - "cloud/api/**"
+      - "cloud/**"
       - "tests/cloud/**"
       - "supabase/migrations/**"
       - "requirements*.txt"
@@ -12,7 +12,7 @@ on:
     branches:
       - cloud-web-foundation
     paths:
-      - "cloud/api/**"
+      - "cloud/**"
       - "tests/cloud/**"
       - "supabase/migrations/**"
       - "requirements*.txt"
@@ -31,6 +31,6 @@ jobs:
       - name: Install cloud API test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install fastapi "uvicorn>=0.29" requests pyyaml "pydantic>=2" pytest httpx
-      - name: Run cloud API contract tests
-        run: python -m pytest -q tests/cloud/test_api.py
+          python -m pip install fastapi "uvicorn>=0.29" requests pyyaml "pydantic>=2" jsonschema pytest httpx
+      - name: Run cloud API and worker contract tests
+        run: python -m pytest -q tests/cloud
