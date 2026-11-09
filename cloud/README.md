@@ -2,7 +2,7 @@
 
 This is the additive cloud control plane for OpenMontage. It preserves the existing local agent-first production engine and Backlot.
 
-## Current status
+## Hosted preview\n\n- Studio: https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-studio\n- API: https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-api\n\n## Current status
 
 - Responsive Arabic RTL / English LTR dashboard: implemented.
 - Supabase Auth token verification: implemented.
