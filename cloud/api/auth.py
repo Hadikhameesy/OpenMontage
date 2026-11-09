@@ -16,7 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 bearer = HTTPBearer(auto_error=False)
 
 
-def current_user(
+def current_session(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> dict[str, Any]:
     if credentials is None or credentials.scheme.lower() != "bearer":
@@ -45,4 +45,8 @@ def current_user(
     user = response.json()
     if not isinstance(user, dict) or not user.get("id"):
         raise HTTPException(status_code=401, detail="Invalid authenticated user")
-    return user
+    return {"user": user, "access_token": credentials.credentials}
+
+
+def current_user(session: dict[str, Any] = Depends(current_session)) -> dict[str, Any]:
+    return session["user"]
