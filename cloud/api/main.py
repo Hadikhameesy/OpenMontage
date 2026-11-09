@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -179,7 +180,7 @@ def cancel_job(job_id: UUID, session: dict[str, Any] = Depends(current_session))
         return queued[0]
     running = update_rows("jobs", token, params={
         "id": f"eq.{job_id}", "status": "eq.running",
-    }, values={"status": "cancel_requested", "cancel_requested_at": "now()"})
+    }, values={"status": "cancel_requested", "cancel_requested_at": datetime.now(timezone.utc).isoformat()})
     if running:
         return running[0]
     raise HTTPException(status_code=409, detail="Job is not cancellable or is not accessible")
