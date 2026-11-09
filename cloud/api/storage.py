@@ -56,3 +56,10 @@ def insert_row(table: str, token: str, values: dict[str, Any]):
 
 def update_rows(table: str, token: str, *, params: dict[str, str], values: dict[str, Any]):
     return _request("PATCH", table, token, params=params, body=values)
+
+
+def call_rpc(name: str, token: str, values: dict[str, Any]):
+    """Call a narrowly-scoped Postgres RPC with the caller JWT and RLS identity."""
+    if not name.replace("_", "").isalnum():
+        raise ValueError("Invalid RPC name")
+    return _request("POST", f"rpc/{name}", token, body=values)
