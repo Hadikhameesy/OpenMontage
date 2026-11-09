@@ -177,7 +177,7 @@ def process_one(client: SupabaseWorkerClient, executor: Callable, worker_id: str
         project = client.project(job["project_id"])
         report(1, "starting", "Worker accepted job")
         # The executor is trusted deployment code, never data supplied by a user.
-        result = executor(job=job, project=project, report_progress=report, stop_event=STOP)
+        result = executor(job=job, project=project, report_progress=report, stop_event=STOP, worker_client=client)
         if heartbeat_error:
             raise WorkerError("heartbeat_failed")
         current = client.job(job["id"])
