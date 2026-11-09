@@ -40,7 +40,7 @@ class FakeClient:
 def test_worker_completes_trusted_executor_result():
     client = FakeClient()
 
-    def executor(*, job, project, report_progress, stop_event):
+    def executor(*, job, project, report_progress, stop_event, worker_client):
         report_progress(25, "planning", "started")
         return {"artifact_count": 1}
 
