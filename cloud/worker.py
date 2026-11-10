@@ -67,6 +67,37 @@ class SupabaseWorkerClient:
         })
         return rows[0] if rows else None
 
+    def input_artifacts(self, job: dict):
+        return self.request("GET", "job_artifacts", params={
+            "job_id": f"eq.{job['id']}", "artifact_type": "eq.input",
+            "select": "id,bucket_id,object_path,content_type,size_bytes,created_at",
+            "order": "created_at.asc", "limit": "12",
+        }) or []
+
+    def download_artifact(self, artifact: dict, destination: str):
+        from pathlib import Path
+        from urllib.parse import quote
+        path = Path(destination)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        bucket = artifact.get("bucket_id") or "openmontage-private"
+        object_path = quote(str(artifact["object_path"]), safe="/")
+        url = f"{self.url}/storage/v1/object/{bucket}/{object_path}"
+        total = 0
+        with self.http.get(url, stream=True, timeout=(15, 180)) as response:
+            if response.status_code >= 400:
+                raise WorkerError(f"Input download failed ({response.status_code})")
+            with path.open("wb") as stream:
+                for chunk in response.iter_content(chunk_size=1 << 16):
+                    if not chunk:
+                        continue
+                    total += len(chunk)
+                    if total > 268435456:
+                        raise WorkerError("input_file_too_large")
+                    stream.write(chunk)
+        if total < 1:
+            raise WorkerError("input_file_empty")
+        return path
+
     def heartbeat(self, job: dict, progress: int, stage: str, message: str):
         return self.rpc("heartbeat_openmontage_job", {
             "p_job_id": job["id"], "p_lease_token": job["lease_token"],
@@ -146,6 +177,7 @@ def process_one(client: SupabaseWorkerClient, executor: Callable, worker_id: str
 
     stop_heartbeat = threading.Event()
     heartbeat_error: list[BaseException] = []
+    progress_state = {"progress": 1, "stage": "starting"}
 
     def report(progress: int, stage: str, message: str = "") -> None:
         current = client.job(job["id"])
@@ -154,6 +186,8 @@ def process_one(client: SupabaseWorkerClient, executor: Callable, worker_id: str
         result = client.heartbeat(job, progress, stage, message)
         if result is False:
             raise InterruptedError("job_lease_lost")
+        progress_state["progress"] = max(0, min(99, int(progress)))
+        progress_state["stage"] = str(stage)[:100]
 
     def beat() -> None:
         interval = max(10, lease // 3)
@@ -162,8 +196,8 @@ def process_one(client: SupabaseWorkerClient, executor: Callable, worker_id: str
                 current = client.job(job["id"])
                 if not current or current["status"] == "cancel_requested":
                     return
-                result = client.heartbeat(job, int(job.get("progress") or 0),
-                                          str(job.get("stage") or "working"), "Worker heartbeat")
+                result = client.heartbeat(job, progress_state["progress"],
+                                          progress_state["stage"], "Worker heartbeat")
                 if result is False:
                     heartbeat_error.append(WorkerError("job_lease_lost"))
                     return
@@ -208,15 +242,21 @@ def main() -> None:
     poll = max(1, int(os.getenv("WORKER_POLL_SECONDS", "5")))
     signal.signal(signal.SIGTERM, lambda *_: STOP.set())
     signal.signal(signal.SIGINT, lambda *_: STOP.set())
+    max_jobs = max(0, int(os.getenv("WORKER_MAX_JOBS", "0")))
+    processed = 0
     LOG.info("Worker %s started", worker_id)
     while not STOP.is_set():
         try:
-            if not process_one(client, executor, worker_id):
+            if process_one(client, executor, worker_id):
+                processed += 1
+                if max_jobs and processed >= max_jobs:
+                    break
+            else:
                 STOP.wait(poll)
         except Exception:
             LOG.exception("Worker loop error")
             STOP.wait(min(30, poll * 2))
-    LOG.info("Worker %s stopped", worker_id)
+    LOG.info("Worker %s stopped after %s jobs", worker_id, processed)
 
 
 if __name__ == "__main__":

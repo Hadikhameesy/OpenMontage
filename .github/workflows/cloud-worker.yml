@@ -1,0 +1,44 @@
+name: OpenMontage free cloud worker
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openmontage-free-worker
+  cancel-in-progress: false
+
+jobs:
+  render-one:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: https://liiakopnrrseubfglayv.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OPENMONTAGE_EXECUTOR: cloud_worker_plugins.openmontage:execute
+      WORKER_ID: github-actions-${{ github.run_id }}
+      WORKER_MAX_JOBS: "1"
+      WORKER_LEASE_SECONDS: "900"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install FFmpeg and worker dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install "requests>=2.31,<3"
+      - name: Verify worker secret
+        run: |
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || {
+            echo "::error::Add SUPABASE_SERVICE_ROLE_KEY in repository Actions secrets."
+            exit 1
+          }
+      - name: Process one queued video job
+        run: python -m cloud.worker
