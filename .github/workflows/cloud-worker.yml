@@ -28,17 +28,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Check worker secret
+        id: worker_secret
+        run: |
+          if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Worker is paused. Add SUPABASE_SERVICE_ROLE_KEY to enable cloud rendering."
+          fi
       - name: Install FFmpeg and worker dependency
+        if: steps.worker_secret.outputs.available == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
           python -m pip install --upgrade pip
           python -m pip install "requests>=2.31,<3"
-      - name: Verify worker secret
-        run: |
-          test -n "$SUPABASE_SERVICE_ROLE_KEY" || {
-            echo "::error::Add SUPABASE_SERVICE_ROLE_KEY in repository Actions secrets."
-            exit 1
-          }
       - name: Process one queued video job
+        if: steps.worker_secret.outputs.available == 'true'
         run: python -m cloud.worker
