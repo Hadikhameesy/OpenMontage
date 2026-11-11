@@ -66,12 +66,12 @@ Deno.serve(async(req:Request)=>{
          cursor=Math.max(cursor,Number(item.sequence)||0);
          controller.enqueue(encoder.encode(formatSseEvent(item)));
         }
-        if(!data?.length)controller.enqueue(encoder.encode(": keep-alive\\n\\n"));
+        if(!data?.length)controller.enqueue(encoder.encode(": keep-alive\n\n"));
         await new Promise(resolve=>setTimeout(resolve,1000));
        }
       }catch{
        if(!cancelled&&!req.signal.aborted){
-        try{controller.enqueue(encoder.encode("event: stream_error\\ndata: {}\\n\\n"));}catch{}
+        try{controller.enqueue(encoder.encode("event: stream_error\ndata: {}\n\n"));}catch{}
        }
       }finally{
        try{controller.close();}catch{}
