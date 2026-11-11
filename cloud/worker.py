@@ -231,6 +231,37 @@ def process_one(client: SupabaseWorkerClient, executor: Callable, worker_id: str
     return True
 
 
+def run_worker_loop(
+    client: SupabaseWorkerClient,
+    executor: Callable,
+    worker_id: str,
+    *,
+    poll_seconds: int = 5,
+    max_jobs: int = 0,
+    max_idle_polls: int = 0,
+    stop_event: threading.Event = STOP,
+) -> int:
+    """Run jobs until stopped; optionally exit after consecutive empty queue polls."""
+    processed = 0
+    idle_polls = 0
+    while not stop_event.is_set():
+        try:
+            if process_one(client, executor, worker_id):
+                processed += 1
+                idle_polls = 0
+                if max_jobs and processed >= max_jobs:
+                    break
+            else:
+                idle_polls += 1
+                if max_idle_polls and idle_polls >= max_idle_polls:
+                    break
+                stop_event.wait(poll_seconds)
+        except Exception:
+            LOG.exception("Worker loop error")
+            stop_event.wait(min(30, max(1, poll_seconds * 2)))
+    return processed
+
+
 def main() -> None:
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO"),
@@ -243,19 +274,12 @@ def main() -> None:
     signal.signal(signal.SIGTERM, lambda *_: STOP.set())
     signal.signal(signal.SIGINT, lambda *_: STOP.set())
     max_jobs = max(0, int(os.getenv("WORKER_MAX_JOBS", "0")))
-    processed = 0
+    max_idle_polls = max(0, int(os.getenv("WORKER_MAX_IDLE_POLLS", "0")))
     LOG.info("Worker %s started", worker_id)
-    while not STOP.is_set():
-        try:
-            if process_one(client, executor, worker_id):
-                processed += 1
-                if max_jobs and processed >= max_jobs:
-                    break
-            else:
-                STOP.wait(poll)
-        except Exception:
-            LOG.exception("Worker loop error")
-            STOP.wait(min(30, poll * 2))
+    processed = run_worker_loop(
+        client, executor, worker_id, poll_seconds=poll,
+        max_jobs=max_jobs, max_idle_polls=max_idle_polls,
+    )
     LOG.info("Worker %s stopped after %s jobs", worker_id, processed)
 
 

@@ -1,5 +1,7 @@
 """Unit tests for the worker queue lifecycle without live Supabase."""
-from cloud.worker import process_one
+import threading
+
+from cloud.worker import process_one, run_worker_loop
 
 
 class FakeClient:
@@ -67,3 +69,23 @@ def test_worker_stops_when_queue_is_empty():
 
     client = EmptyClient()
     assert process_one(client, lambda **kwargs: {}, "test-worker") is False
+
+
+
+def test_worker_loop_exits_after_configured_empty_polls():
+    class EmptyClient(FakeClient):
+        def __init__(self):
+            super().__init__()
+            self.claims = 0
+
+        def claim(self, worker_id, lease_seconds):
+            self.claims += 1
+            return None
+
+    client = EmptyClient()
+    processed = run_worker_loop(
+        client, lambda **kwargs: {}, "test-worker",
+        poll_seconds=0, max_idle_polls=1, stop_event=threading.Event(),
+    )
+    assert processed == 0
+    assert client.claims == 1
