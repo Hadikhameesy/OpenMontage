@@ -22,6 +22,7 @@ jobs:
       OPENMONTAGE_EXECUTOR: cloud_worker_plugins.openmontage:execute
       WORKER_ID: github-actions-${{ github.run_id }}
       WORKER_MAX_JOBS: "1"
+      WORKER_MAX_IDLE_POLLS: "1"
       WORKER_LEASE_SECONDS: "900"
     steps:
       - uses: actions/checkout@v4
