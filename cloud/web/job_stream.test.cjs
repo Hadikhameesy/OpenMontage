@@ -24,7 +24,7 @@ test("retains the last event id when a later event omits id", () => {
 test("ignores an id containing a null character", () => {
   const events = [];
   const parser = createSseParser(event => events.push(event));
-  parser.push("id: 5\ndata: first\n\nid: bad\\0id\ndata: second\n\n");
+  parser.push("id: 5\ndata: first\n\nid: bad\0id\ndata: second\n\n");
   assert.deepEqual(events.map(event => event.id), ["5", "5"]);
 });
 
