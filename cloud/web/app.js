@@ -28,7 +28,7 @@ function applyJobEvent(jobId,event){
  else if(type.includes("failed"))job.status="failed";
  else if(type.includes("retrying"))job.status="queued";
  else if(type.includes("cancelled"))job.status="cancelled";
- jobs[index]=job;renderProjects();
+ jobs[index]=job;renderProjects();syncJobStreams();
  if(["completed","failed","cancelled"].includes(job.status)){const stream=jobStreams.get(jobId);stream?.stop();jobStreams.delete(jobId);loadProjects()}
 }
 function syncJobStreams(){
