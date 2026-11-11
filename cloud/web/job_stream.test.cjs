@@ -11,7 +11,7 @@ test("parses split SSE frames, CRLF, comments, and multiline data", () => {
   assert.equal(events.length, 1);
   assert.equal(events[0].id, "7");
   assert.equal(events[0].event, "stage.progress");
-  assert.equal(events[0].data, "{\"progress\":\n35,\n\"stage\":\"rendering\"}");
+  assert.equal(events[0].data, "{\"progress\":35,\n\"stage\":\"rendering\"}");
 });
 
 test("retains the last event id when a later event omits id", () => {
