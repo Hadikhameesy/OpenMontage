@@ -12,14 +12,14 @@ Deno.test("rejects malformed and unsafe event cursors", () => {
 
 Deno.test("formats an SSE event with a stable id and JSON data", () => {
   const event = formatSseEvent({ sequence: 7, event_type: "progress", progress: 35 });
-  if (event !== 'id: 7\\nevent: progress\\ndata: {"sequence":7,"event_type":"progress","progress":35}\\n\\n') {
+  if (event !== 'id: 7\nevent: progress\ndata: {"sequence":7,"event_type":"progress","progress":35}\n\n') {
     throw new Error("SSE frame did not match the expected wire format");
   }
 });
 
 Deno.test("falls back to message for an unsafe event name", () => {
-  const event = formatSseEvent({ sequence: 1, event_type: "bad\\nevent" });
-  if (!event.startsWith("id: 1\\nevent: message\\n")) throw new Error("unsafe event name was not normalized");
+  const event = formatSseEvent({ sequence: 1, event_type: "bad\nevent" });
+  if (!event.startsWith("id: 1\nevent: message\n")) throw new Error("unsafe event name was not normalized");
 });
 
 Deno.test("rejects invalid event sequence numbers", () => {
