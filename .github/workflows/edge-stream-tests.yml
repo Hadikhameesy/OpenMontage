@@ -1,0 +1,22 @@
+name: Supabase Edge event stream tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/openmontage-api/**"
+      - ".github/workflows/edge-stream-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  stream-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test event stream framing and cursor validation
+        run: deno test supabase/functions/openmontage-api/sse_test.ts
