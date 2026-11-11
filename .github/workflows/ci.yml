@@ -44,3 +44,11 @@ jobs:
 
       - name: Run test suite
         run: make test
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Test Supabase Edge event stream
+        run: deno test supabase/functions/openmontage-api/sse_test.ts
