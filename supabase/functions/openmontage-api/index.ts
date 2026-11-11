@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { formatSseEvent, parseLastEventId } from "./sse.ts";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY=Deno.env.get("SUPABASE_ANON_KEY")!;
 const ALLOWED_ORIGINS=new Set(["https://hadikhameesy.github.io","http://localhost:5500","http://127.0.0.1:5500"]);
@@ -43,6 +44,44 @@ Deno.serve(async(req:Request)=>{
    const {data:rows,error}=await sb.from("job_artifacts").select("id,job_id,artifact_type,content_type,size_bytes,object_path,created_at").eq("job_id",artifacts[1]).order("created_at",{ascending:false});if(error)throw error;
    const items=[];for(const item of rows||[]){const {data:signed}=await sb.storage.from(BUCKET).createSignedUrl(item.object_path,3600);items.push({...item,signedUrl:signed?.signedUrl||null});}
    return json({items},200,origin);
+  }
+  const stream=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/events\/stream$/i);
+  if(stream&&req.method==="GET"){
+   const jobId=stream[1];
+   const {data:owned,error:oe}=await sb.from("jobs").select("id").eq("id",jobId).maybeSingle();
+   if(oe)throw oe;
+   if(!owned)return fail("Job not found",404,origin);
+   let cursor=parseLastEventId(req.headers.get("last-event-id"));
+   let cancelled=false;
+   const encoder=new TextEncoder();
+   const body=new ReadableStream<Uint8Array>({
+    start(controller){
+     const pump=async()=>{
+      const deadline=Date.now()+20000;
+      try{
+       while(!cancelled&&!req.signal.aborted&&Date.now()<deadline){
+        const {data,error}=await sb.from("job_events").select("sequence,event_type,stage,progress,message,data,created_at").eq("job_id",jobId).gt("sequence",cursor).order("sequence",{ascending:true}).limit(100);
+        if(error)throw error;
+        for(const item of data||[]){
+         cursor=Math.max(cursor,Number(item.sequence)||0);
+         controller.enqueue(encoder.encode(formatSseEvent(item)));
+        }
+        if(!data?.length)controller.enqueue(encoder.encode(": keep-alive\n\n"));
+        await new Promise(resolve=>setTimeout(resolve,1000));
+       }
+      }catch{
+       if(!cancelled&&!req.signal.aborted){
+        try{controller.enqueue(encoder.encode("event: stream_error\ndata: {}\n\n"));}catch{}
+       }
+      }finally{
+       try{controller.close();}catch{}
+      }
+     };
+     void pump();
+    },
+    cancel(){cancelled=true;}
+   });
+   return new Response(body,{status:200,headers:{...cors(origin),"Content-Type":"text/event-stream; charset=utf-8","Cache-Control":"no-cache, no-transform","X-Accel-Buffering":"no"}});
   }
   const ev=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/events$/i);
   if(ev&&req.method==="GET"){const after=Math.max(0,Number(url.searchParams.get("after")||0));const {data,error}=await sb.from("job_events").select("sequence,event_type,stage,progress,message,data,created_at").eq("job_id",ev[1]).gt("sequence",after).order("sequence",{ascending:true}).limit(500);if(error)throw error;return json({items:data||[]},200,origin);}

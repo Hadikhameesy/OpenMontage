@@ -29,3 +29,7 @@ Never place service-role keys or video-provider credentials in browser configura
 The schema is already applied to the linked Supabase project. Migration filenames in this repository match the recorded Supabase migration versions. The dashboard creates a project and a durable queued job record. The job remains queued until the separately deployed worker and trusted agent-runtime adapter are connected; this is not yet a live video-rendering service.
 
 See `cloud/LOCAL_DEVELOPMENT.md`, `cloud/WORKER.md`, and `cloud/DEPLOYMENT.md`.
+
+## Live job progress
+
+The Studio uses an authenticated `fetch()` stream for job events so it can send the user's bearer token without placing credentials in a URL. It resumes with `Last-Event-ID` after the bounded server stream closes. If the event endpoint is not available yet, the UI keeps its existing periodic project refresh as a compatibility fallback. No service-role or provider secret is stored in the browser.
