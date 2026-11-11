@@ -52,3 +52,6 @@ jobs:
 
       - name: Test Supabase Edge event stream
         run: deno test supabase/functions/openmontage-api/sse_test.ts
+
+      - name: Test browser job event stream
+        run: node --test cloud/web/job_stream.test.cjs
