@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { validateUpload } from "./upload_validation.ts";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY=Deno.env.get("SUPABASE_ANON_KEY")!;
 const ALLOWED_ORIGINS=new Set(["https://hadikhameesy.github.io","http://localhost:5500","http://127.0.0.1:5500"]);
@@ -31,8 +32,7 @@ Deno.serve(async(req:Request)=>{
   if(upload&&req.method==="POST"){
    const {data:job,error:je}=await sb.from("jobs").select("id").eq("id",upload[1]).maybeSingle();if(je)throw je;if(!job)return fail("Job not found",404,origin);
    const b=await req.json(),filename=String(b.filename||"").split(/[\\/]/).pop()!.replace(/[^a-zA-Z0-9._-]/g,"_").slice(0,100),contentType=String(b.content_type||"application/octet-stream"),size=Number(b.size_bytes);
-   const allowed=contentType.startsWith("image/")||contentType.startsWith("video/")||contentType.startsWith("audio/")||["application/pdf","text/plain","application/zip"].includes(contentType);
-   if(!filename||!allowed||!Number.isSafeInteger(size)||size<1||size>524288000)return fail("Unsupported file or file exceeds 500 MB",422,origin);
+   if(!validateUpload(filename,contentType,size))return fail("Unsupported file or file exceeds 256 MiB",422,origin);
    const objectPath=`${authData.user.id}/${upload[1]}/${crypto.randomUUID()}-${filename}`;
    const {data:signed,error:se}=await sb.storage.from(BUCKET).createSignedUploadUrl(objectPath,{upsert:false});if(se)throw se;
    const {data:artifact,error:ae}=await sb.from("job_artifacts").insert({job_id:upload[1],owner_id:authData.user.id,bucket_id:BUCKET,object_path:objectPath,artifact_type:"input",content_type:contentType,size_bytes:size}).select("*").single();if(ae)throw ae;
