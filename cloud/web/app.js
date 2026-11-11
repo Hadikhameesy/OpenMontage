@@ -33,7 +33,7 @@ function applyJobEvent(jobId,event){
 }
 function syncJobStreams(){
  if(!session||!window.OpenMontageJobStream||streamUnsupported){if(!session)stopJobStreams();return}
- const active=jobs.filter(j=>["queued","running","cancel_requested"].includes(j.status)),activeIds=new Set(active.map(j=>j.id));
+ const active=jobs.filter(j=>["running","cancel_requested"].includes(j.status)),activeIds=new Set(active.map(j=>j.id));
  for(const [id,stream] of jobStreams){if(!activeIds.has(id)){stream.stop();jobStreams.delete(id)}}
  for(const job of active){if(jobStreams.has(job.id))continue;
   const stream=window.OpenMontageJobStream.start({
