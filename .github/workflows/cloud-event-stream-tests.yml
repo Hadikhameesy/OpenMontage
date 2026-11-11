@@ -1,0 +1,31 @@
+name: Cloud event stream tests
+
+on:
+  pull_request:
+    paths:
+      - "cloud/web/job_stream.js"
+      - "cloud/web/job_stream.test.cjs"
+      - "cloud/web/app.js"
+      - "cloud/web/index.html"
+      - "supabase/functions/openmontage-api/**"
+      - ".github/workflows/cloud-event-stream-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  event-stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test Supabase Edge event stream
+        run: deno test supabase/functions/openmontage-api/sse_test.ts
+      - name: Test browser job event stream
+        run: node --test cloud/web/job_stream.test.cjs
