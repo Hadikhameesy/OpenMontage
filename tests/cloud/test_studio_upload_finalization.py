@@ -10,3 +10,9 @@ def test_studio_defers_jobs_until_all_uploads_are_finalized():
 
     assert create_job < upload_loop < finalize < success_message
     assert 'method:"POST"' in source[finalize - 90:finalize + 100]
+
+
+def test_deployed_studio_bundle_uses_the_same_upload_gate():
+    bundle = (Path(__file__).parents[2] / "supabase" / "functions" / "openmontage-studio" / "index.ts").read_text(encoding="utf-8")
+    assert 'defer_queue:true' in bundle
+    assert 'complete-uploads' in bundle
