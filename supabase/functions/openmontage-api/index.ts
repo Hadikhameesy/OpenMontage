@@ -38,7 +38,9 @@ Deno.serve(async(req:Request)=>{
    const {data:artifact,error:ae}=await sb.from("job_artifacts").insert({job_id:upload[1],owner_id:authData.user.id,bucket_id:BUCKET,object_path:objectPath,artifact_type:"input",content_type:contentType,size_bytes:size}).select("*").single();if(ae)throw ae;
    return json({artifact, bucket:BUCKET, path:objectPath, token:signed.token, signedUrl:signed.signedUrl},201,origin);
   }
-  const finalize=path.match(/^\\/api\\/v1\\/jobs\\/([0-9a-f-]+)\\/complete-uploads$/i);\n  if(finalize&&req.method==="POST"){const {data,error}=await sb.rpc("finalize_openmontage_job_uploads",{p_job_id:finalize[1]});if(error)throw error;if(data!==true)return fail("Upload verification failed. Upload every input and include at least one image or video.",409,origin);return json({job_id:finalize[1],status:"queued",uploads_complete:true},202,origin);}\n  const artifacts=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/artifacts$/i);
+  const finalize=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/complete-uploads$/i);
+  if(finalize&&req.method==="POST"){const {data,error}=await sb.rpc("finalize_openmontage_job_uploads",{p_job_id:finalize[1]});if(error)throw error;if(data!==true)return fail("Upload verification failed. Upload every input and include at least one image or video.",409,origin);return json({job_id:finalize[1],status:"queued",uploads_complete:true},202,origin);}
+  const artifacts=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/artifacts$/i);
   if(artifacts&&req.method==="GET"){
    const {data:rows,error}=await sb.from("job_artifacts").select("id,job_id,artifact_type,content_type,size_bytes,object_path,created_at").eq("job_id",artifacts[1]).order("created_at",{ascending:false});if(error)throw error;
    const items=[];for(const item of rows||[]){const {data:signed}=await sb.storage.from(BUCKET).createSignedUrl(item.object_path,3600);items.push({...item,signedUrl:signed?.signedUrl||null});}
