@@ -41,4 +41,5 @@ def test_api_supports_deferred_creation_and_explicit_finalization():
     assert "deferQueue=b.defer_queue===true" in api
     assert "uploads_complete:!deferQueue" in api
     assert "/complete-uploads" in api
+    assert r"^\\/api\\/v1\\/jobs\\/([0-9a-f-]+)\\/complete-uploads$" in api
     assert 'sb.rpc("finalize_openmontage_job_uploads"' in api
