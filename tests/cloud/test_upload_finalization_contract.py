@@ -24,6 +24,7 @@ def test_upload_finalizer_is_owner_scoped_and_checks_real_storage_objects():
     assert "a.owner_id = v_owner" in sql
     assert "v_visual_count < 1" in sql
     assert "v_missing_count > 0" in sql
+    assert "metadata->>'size'" in sql
     assert "v_input_count > 12" in sql
 
 
