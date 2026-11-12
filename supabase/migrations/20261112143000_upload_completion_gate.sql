@@ -66,7 +66,16 @@ begin
       where a.artifact_type = 'input'
         and a.content_type ~* '^(image|video)/'
     ),
-    count(*) filter (where a.artifact_type = 'input' and o.name is null)
+    count(*) filter (
+      where a.artifact_type = 'input'
+        and (
+          o.name is null
+          or a.size_bytes is null
+          or coalesce((o.metadata->>'size')::bigint, (o.metadata->>'contentLength')::bigint, -1) <> a.size_bytes
+          or coalesce((o.metadata->>'size')::bigint, (o.metadata->>'contentLength')::bigint, -1) < 1
+          or coalesce((o.metadata->>'size')::bigint, (o.metadata->>'contentLength')::bigint, -1) > 268435456
+        )
+    )
     into v_input_count, v_visual_count, v_missing_count
     from public.job_artifacts a
     left join storage.objects o
