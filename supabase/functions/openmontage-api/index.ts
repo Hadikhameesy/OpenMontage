@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { validateUpload } from "./upload_validation.ts";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY=Deno.env.get("SUPABASE_ANON_KEY")!;
 const ALLOWED_ORIGINS=new Set(["https://hadikhameesy.github.io","http://localhost:5500","http://127.0.0.1:5500"]);
@@ -26,18 +27,19 @@ Deno.serve(async(req:Request)=>{
   if(req.method==="GET"&&path==="/api/v1/jobs"){const {data,error}=await sb.from("jobs").select("id,project_id,pipeline_id,status,progress,stage,error_code,created_at,started_at,finished_at").order("created_at",{ascending:false}).limit(100);if(error)throw error;return json({items:data||[]},200,origin);}
   const pj=path.match(/^\/api\/v1\/projects\/([0-9a-f-]+)\/jobs$/i);
   if(pj&&req.method==="GET"){const {data,error}=await sb.from("jobs").select("*").eq("project_id",pj[1]).order("created_at",{ascending:false});if(error)throw error;return json({items:data||[]},200,origin);}
-  if(pj&&req.method==="POST"){const {data:p,error:pe}=await sb.from("projects").select("id,pipeline_id").eq("id",pj[1]).maybeSingle();if(pe)throw pe;if(!p)return fail("Project not found",404,origin);const b=await req.json().catch(()=>({})),options=b.options&&typeof b.options==="object"&&!Array.isArray(b.options)?b.options:{};const {data,error}=await sb.from("jobs").insert({owner_id:authData.user.id,project_id:p.id,pipeline_id:p.pipeline_id,status:"queued",payload:options}).select("*").single();if(error)throw error;return json(data,202,origin);}
+  if(pj&&req.method==="POST"){const {data:p,error:pe}=await sb.from("projects").select("id,pipeline_id").eq("id",pj[1]).maybeSingle();if(pe)throw pe;if(!p)return fail("Project not found",404,origin);const b=await req.json().catch(()=>({})),options=b.options&&typeof b.options==="object"&&!Array.isArray(b.options)?b.options:{},deferQueue=b.defer_queue===true;const {data,error}=await sb.from("jobs").insert({owner_id:authData.user.id,project_id:p.id,pipeline_id:p.pipeline_id,status:"queued",uploads_complete:!deferQueue,payload:options}).select("*").single();if(error)throw error;return json(data,202,origin);}
   const upload=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/uploads$/i);
   if(upload&&req.method==="POST"){
    const {data:job,error:je}=await sb.from("jobs").select("id").eq("id",upload[1]).maybeSingle();if(je)throw je;if(!job)return fail("Job not found",404,origin);
    const b=await req.json(),filename=String(b.filename||"").split(/[\\/]/).pop()!.replace(/[^a-zA-Z0-9._-]/g,"_").slice(0,100),contentType=String(b.content_type||"application/octet-stream"),size=Number(b.size_bytes);
-   const allowed=contentType.startsWith("image/")||contentType.startsWith("video/")||contentType.startsWith("audio/")||["application/pdf","text/plain","application/zip"].includes(contentType);
-   if(!filename||!allowed||!Number.isSafeInteger(size)||size<1||size>524288000)return fail("Unsupported file or file exceeds 500 MB",422,origin);
+   if(!validateUpload(filename,contentType,size))return fail("Unsupported file or file exceeds 256 MiB",422,origin);
    const objectPath=`${authData.user.id}/${upload[1]}/${crypto.randomUUID()}-${filename}`;
    const {data:signed,error:se}=await sb.storage.from(BUCKET).createSignedUploadUrl(objectPath,{upsert:false});if(se)throw se;
    const {data:artifact,error:ae}=await sb.from("job_artifacts").insert({job_id:upload[1],owner_id:authData.user.id,bucket_id:BUCKET,object_path:objectPath,artifact_type:"input",content_type:contentType,size_bytes:size}).select("*").single();if(ae)throw ae;
    return json({artifact, bucket:BUCKET, path:objectPath, token:signed.token, signedUrl:signed.signedUrl},201,origin);
   }
+  const finalize=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/complete-uploads$/i);
+  if(finalize&&req.method==="POST"){const {data,error}=await sb.rpc("finalize_openmontage_job_uploads",{p_job_id:finalize[1]});if(error)throw error;if(data!==true)return fail("Upload verification failed. Upload every input and include at least one image or video.",409,origin);return json({job_id:finalize[1],status:"queued",uploads_complete:true},202,origin);}
   const artifacts=path.match(/^\/api\/v1\/jobs\/([0-9a-f-]+)\/artifacts$/i);
   if(artifacts&&req.method==="GET"){
    const {data:rows,error}=await sb.from("job_artifacts").select("id,job_id,artifact_type,content_type,size_bytes,object_path,created_at").eq("job_id",artifacts[1]).order("created_at",{ascending:false});if(error)throw error;

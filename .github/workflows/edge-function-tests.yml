@@ -1,0 +1,22 @@
+name: Supabase Edge Function tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/edge-function-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  edge-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test Edge API upload validation
+        run: deno test supabase/functions/openmontage-api/upload_validation_test.ts

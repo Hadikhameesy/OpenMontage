@@ -41,9 +41,18 @@ persistent worker; a free web/API host is not a substitute for this process.
 
 ## Current integration boundary
 
-OpenMontage pipelines are agent-directed: manifests declare stages, tools, and
-human gates, but the repository does not yet expose a single cloud-safe
-headless orchestration entry point. The adapter is therefore a required
-integration boundary, not a fake claim that a queued record already renders
-video. Until the adapter is implemented and deployed, the dashboard must show
-jobs as queued/waiting for a worker.
+The free adapter `cloud_worker_plugins.openmontage:execute` assembles up to 12
+uploaded images/videos plus optional audio into an MP4 with FFmpeg (up to 60
+seconds). It does not generate footage from a text prompt and does not invoke a
+paid provider. The full agent-directed, headless OpenMontage orchestration
+pipeline remains a separate integration task.
+
+## Upload readiness
+
+New Studio clients should create jobs with `defer_queue: true`, upload every
+input, then call `POST /api/v1/jobs/{job_id}/complete-uploads`. The API invokes a
+scoped database function that verifies all registered objects exist in the
+private owner/job prefix and that at least one image or video is present. The
+worker claim RPC ignores deferred jobs until this check succeeds. The database
+column defaults to `true` only to preserve compatibility with older clients;
+new clients must opt into deferred queueing.
