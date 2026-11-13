@@ -14,5 +14,10 @@ def test_studio_defers_jobs_until_all_uploads_are_finalized():
 
 def test_deployed_studio_bundle_uses_the_same_upload_gate():
     bundle = (Path(__file__).parents[2] / "supabase" / "functions" / "openmontage-studio" / "index.ts").read_text(encoding="utf-8")
-    assert 'defer_queue:true' in bundle
-    assert 'complete-uploads' in bundle
+    create_job = bundle.index('defer_queue:true')
+    upload_loop = bundle.index('for(const file of files)', create_job)
+    finalize = bundle.index('complete-uploads', upload_loop)
+    success_message = bundle.index('const queueNote=', finalize)
+
+    assert create_job < upload_loop < finalize < success_message
+    assert 'method:"POST"' in bundle[finalize - 90:finalize + 100]
