@@ -1,0 +1,1 @@
+window.OPENMONTAGE_CONFIG={apiBaseUrl:"https://liiakopnrrseubfglayv.supabase.co/functions/v1/openmontage-api",supabaseUrl:"https://liiakopnrrseubfglayv.supabase.co",supabaseAnonKey:"sb_publishable_kLnKPbE9gksxlYAwfzZpsQ_O2ZtOhkO"};
