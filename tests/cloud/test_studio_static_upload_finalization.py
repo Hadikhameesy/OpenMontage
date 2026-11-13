@@ -12,3 +12,11 @@ def test_static_studio_defers_jobs_until_all_uploads_are_finalized():
     assert 'method:"POST"' in source[finalize - 90:finalize + 100]
     assert 'files.some(f=>f.type.startsWith("image/")||f.type.startsWith("video/"))' in source
     assert 'f.size>268435456' in source
+
+
+
+def test_static_studio_fetches_private_artifacts_and_exposes_signed_output_links():
+    source = (Path(__file__).parents[2] / "studio" / "app.js").read_text(encoding="utf-8")
+    assert '"/api/v1/jobs/"+j.id+"/artifacts"' in source
+    assert 'a.artifact_type==="output"&&a.signedUrl' in source
+    assert 'link.rel="noopener noreferrer"' in source
