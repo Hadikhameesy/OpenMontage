@@ -21,3 +21,5 @@ def test_deployed_studio_bundle_uses_the_same_upload_gate():
 
     assert create_job < upload_loop < finalize < success_message
     assert 'method:"POST"' in bundle[finalize - 90:finalize + 100]
+    assert '"/api/v1/jobs/"+j.id+"/artifacts"' in bundle
+    assert 'a.artifact_type==="output"&&a.signedUrl' in bundle
