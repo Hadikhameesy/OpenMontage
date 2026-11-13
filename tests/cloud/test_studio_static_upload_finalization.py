@@ -20,3 +20,7 @@ def test_static_studio_fetches_private_artifacts_and_exposes_signed_output_links
     assert '"/api/v1/jobs/"+j.id+"/artifacts"' in source
     assert 'a.artifact_type==="output"&&a.signedUrl' in source
     assert 'link.rel="noopener noreferrer"' in source
+    assert '$("#projectCount")' not in source
+    assert '$("#activeCount")' not in source
+    assert '$("#doneCount")' not in source
+    assert '$("#projectList")' not in source
