@@ -24,6 +24,10 @@ Email/password sign-in uses Supabase Auth. The browser sends its access token to
 
 Never place service-role keys or video-provider credentials in browser configuration.
 
+## Media upload and queue handoff
+
+The Studio creates new jobs with `defer_queue: true`, uploads every selected file to its signed private Storage path, and then calls `POST /api/v1/jobs/{job_id}/complete-uploads`. The API verifies the registered objects and requires at least one image or video before the durable worker may claim the job. If an upload fails, the job remains deferred and is not released to the worker.
+
 ## Database status
 
 The schema is already applied to the linked Supabase project. Migration filenames in this repository match the recorded Supabase migration versions. The dashboard creates a project and a durable queued job record. The job remains queued until the separately deployed worker and trusted agent-runtime adapter are connected; this is not yet a live video-rendering service.
