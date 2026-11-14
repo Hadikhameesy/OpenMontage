@@ -47,3 +47,5 @@ headless orchestration entry point. The adapter is therefore a required
 integration boundary, not a fake claim that a queued record already renders
 video. Until the adapter is implemented and deployed, the dashboard must show
 jobs as queued/waiting for a worker.
+
+Worker outputs use a fresh UUID-prefixed object path on every attempt. This avoids a failed finalization leaving an existing object that would make a later retry fail under the bucket's no-overwrite policy. Old attempt artifacts remain private and can be removed later by a retention/cleanup job after the final result is verified.

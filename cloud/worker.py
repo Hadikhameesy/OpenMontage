@@ -12,6 +12,7 @@ import signal
 import socket
 import threading
 import time
+import uuid
 from typing import Any, Callable
 
 import requests
@@ -132,7 +133,7 @@ class SupabaseWorkerClient:
         if size < 1 or size > 1073741824:
             raise WorkerError("artifact_size_out_of_range")
         safe_name = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in path.name)[:120]
-        object_path = f"{job['owner_id']}/{job['id']}/{safe_name}"
+        object_path = f"{job['owner_id']}/{job['id']}/{uuid.uuid4().hex}-{safe_name}"
         url = f"{self.url}/storage/v1/object/openmontage-private/{object_path}"
         with path.open("rb") as stream:
             response = self.http.post(
