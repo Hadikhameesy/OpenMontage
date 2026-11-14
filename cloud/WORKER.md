@@ -56,3 +56,7 @@ private owner/job prefix and that at least one image or video is present. The
 worker claim RPC ignores deferred jobs until this check succeeds. The database
 column defaults to `true` only to preserve compatibility with older clients;
 new clients must opt into deferred queueing.
+
+## Expired cancellation recovery
+
+If a user requests cancellation while a worker owns the job and that worker disappears before acknowledging the request, the next worker poll finalizes the expired `cancel_requested` lease as `cancelled` and appends a `job.cancelled` event. It is not retried as a render. Expired `running` jobs continue to follow the normal attempt limit and retry policy. This behavior is introduced by migration `20261114143000_finalize_expired_cancel_requests.sql`, which must be reviewed and applied with the normal migration rollout before it takes effect.
